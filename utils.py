@@ -2,9 +2,14 @@ from skimage.feature import canny
 from skimage.filters import scharr
 from skimage import exposure
 from skimage.color import rgb2gray
+from skimage.io import imread
 from keras_preprocessing.image import ImageDataGenerator
 import numpy as np
 
+
+DATA_FOLDER = "./data/"
+TEST_DATA = DATA_FOLDER + "images/test/"
+TRAIN_DATA = DATA_FOLDER + "images/train/"
 
 def apply_filter(img, name="equalizer"):
     if name == "equalizer":
@@ -15,6 +20,8 @@ def apply_filter(img, name="equalizer"):
         return scharr(img, )
     elif name == "canny_feature":
         return canny(rgb2gray(img), sigma=4)
+    else:
+        return exposure.equalize_hist(img)
 
 
 def rle_decode(mask_rle, shape=(768, 768)):
@@ -66,17 +73,15 @@ def get_augmented_images_generator(in_gen, seed=None):
                    horizontal_flip=True,
                    vertical_flip=True,
                    fill_mode='reflect',
-                   data_format='channels_last',
-                   brightness_range=[0.5, 1.5])
+                   data_format='channels_last')
     image_gen = ImageDataGenerator(**dg_args)
-    dg_args.pop('brightness_range')
     label_gen = ImageDataGenerator(**dg_args)
 
     np.random.seed(seed if seed is not None else np.random.choice(range(9999)))
     for in_x, in_y in in_gen:
         seed = np.random.choice(range(9999))
         # keep the seeds synchronized otherwise the augmentation to the images is different from the masks
-        g_x = image_gen.flow(255 * in_x,
+        g_x = image_gen.flow(255 * in_x, # *255
                              batch_size=in_x.shape[0],
                              seed=seed,
                              shuffle=True)
@@ -86,3 +91,17 @@ def get_augmented_images_generator(in_gen, seed=None):
                              shuffle=True)
 
         yield next(g_x) / 255.0, next(g_y)
+
+# set color for class
+def get_colors_for_class_ids(class_ids):
+    colors = []
+    for class_id in class_ids:
+        if class_id == 1:
+            colors.append((.941, .204, .204))
+    return colors
+    
+def get_image(img_id, from_train=True):
+    if from_train:
+        return imread( TRAIN_DATA + img_id)
+    else:
+        return
