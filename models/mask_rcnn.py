@@ -5,11 +5,13 @@ from utils import get_image, rle_decode, get_colors_for_class_ids
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import imgaug
+from imgaug import augmenters as iaa
 
 ROOT_DIR = os.getcwd()
 MODELS_DIR = os.path.join(ROOT_DIR, 'models')
 MASKRCNN_DIR = os.path.join(MODELS_DIR, 'Mask_RCNN')
-SERIALIZED_MASKRCNN_DIR = os.path.join(MASKRCNN_DIR, 'serialized')
+SERIALIZED_MASKRCNN_DIR = os.path.join(MODELS_DIR, 'serialized')
 COCO_WEIGHTS_PATH = os.path.join(MASKRCNN_DIR, 'mask_rcnn_coco.h5.1')
 print(MASKRCNN_DIR)
 print(COCO_WEIGHTS_PATH)
@@ -64,8 +66,21 @@ class MRCNN:
         self.mask_rcnn = modellib.MaskRCNN(mode='training', config=self.config, model_dir=SERIALIZED_MASKRCNN_DIR)
         self.mask_rcnn.load_weights(COCO_WEIGHTS_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc","mrcnn_bbox", "mrcnn_mask"])
 
+# todo - fix error storing weights
+# increase lr
     def train(self, train, valid, epochs=5, lr=0.0001, layers='all'):
-        self.mask_rcnn.train(train, valid, learning_rate=lr,epochs=epochs, layers=layers, augmentation=None)
+
+        augmentation = iaa.Sometimes(5/6, iaa.OneOf(
+                                            [
+                                            iaa.Fliplr(1), 
+                                            iaa.Flipud(1), 
+                                            iaa.Affine(rotate=(-45, 45)), 
+                                            iaa.Multiply((0.7, 1.2), per_channel=0.5),
+                                            iaa.Affine(scale=(0.5, 1.5))
+                                             ]
+                                        )
+                                   )
+        self.mask_rcnn.train(train, valid, learning_rate=lr,epochs=epochs, layers=layers, augmentation=augmentation)
         history =  self.mask_rcnn.keras_model.history.history
         best_epoch = np.argmin(history["val_loss"])
         score = history["val_loss"][best_epoch]
@@ -101,7 +116,6 @@ class MRCNN:
         print('Found model {}'.format(self.weights_path))
         return history
 
-    # debug this
     def examine_infer(self, dd, n=10):
         infer_config = self.config
         infer_config.IMAGES_PER_GPU = 1
