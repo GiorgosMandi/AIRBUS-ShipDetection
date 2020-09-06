@@ -7,7 +7,7 @@ from keras_preprocessing.image import ImageDataGenerator
 import numpy as np
 
 
-DATA_FOLDER = "./data/"
+DATA_FOLDER = "../data/"
 TEST_DATA = DATA_FOLDER + "images/test/"
 TRAIN_DATA = DATA_FOLDER + "images/train/"
 
@@ -81,7 +81,7 @@ def get_augmented_images_generator(in_gen, seed=None):
     for in_x, in_y in in_gen:
         seed = np.random.choice(range(9999))
         # keep the seeds synchronized otherwise the augmentation to the images is different from the masks
-        g_x = image_gen.flow(255 * in_x, # *255
+        g_x = image_gen.flow(255 * in_x,
                              batch_size=in_x.shape[0],
                              seed=seed,
                              shuffle=True)
@@ -102,6 +102,6 @@ def get_colors_for_class_ids(class_ids):
     
 def get_image(img_id, from_train=True):
     if from_train:
-        return imread( TRAIN_DATA + img_id)
+        return imread(TRAIN_DATA + img_id)
     else:
         return
