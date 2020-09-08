@@ -1,7 +1,7 @@
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-import keras.backend as K
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+import tensorflow.keras.backend as K
+from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
-from keras.optimizers import Adam
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ class SegmentationModel:
         reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.33, patience=3, verbose=1, mode='min',
                                            epsilon=0.0001, cooldown=0, min_lr=1e-8)
         early = EarlyStopping(monitor="val_loss", mode="min", patience=50)
-        self.callbacks_list = []
+        self.callbacks_list = [checkpoint, reduceLROnPlat, early]
 
     def dice_coef(self, y_true, y_pred, smooth=1):
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
