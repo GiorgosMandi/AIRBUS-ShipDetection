@@ -1,12 +1,6 @@
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras.layers import Convolution2D, BatchNormalization, LeakyReLU, ReLU, GlobalAveragePooling2D, UpSampling2D, \
     AveragePooling2D, Activation, Add
 import tensorflow as tf
-import numpy as np
-from tensorflow.keras.optimizers import Adam
-import tensorflow.keras.backend as K
-import matplotlib.pyplot as plt
-
 from models.segmentation_model import SegmentationModel
 
 GAUSSIAN_NOISE = 0.1

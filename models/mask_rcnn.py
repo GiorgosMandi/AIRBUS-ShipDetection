@@ -1,14 +1,13 @@
 import os
 import sys
 sys.path.insert(0, os.getcwd())
-from utils import get_image, rle_decode, get_colors_for_class_ids
+from utils.utilities import get_image, rle_decode, get_colors_for_class_ids
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import imgaug
 from imgaug import augmenters as iaa
 
-ROOT_DIR = os.getcwd()
+ROOT_DIR = os.path.join(os.getcwd(), '..') 
 MODELS_DIR = os.path.join(ROOT_DIR, 'models')
 MASKRCNN_DIR = os.path.join(MODELS_DIR, 'Mask_RCNN')
 SERIALIZED_MASKRCNN_DIR = os.path.join(MODELS_DIR, 'serialized')

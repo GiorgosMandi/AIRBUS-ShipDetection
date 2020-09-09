@@ -1,11 +1,6 @@
 import os
-from io import BytesIO
 import tarfile
-import tempfile
-from six.moves import urllib
 
-from matplotlib import gridspec
-from matplotlib import pyplot as plt
 import numpy as np
 from PIL import Image
 
@@ -13,8 +8,7 @@ import tensorflow as tf
 
 import sys
 sys.path.insert(0, os.getcwd())
-from utils import get_image
-from visualization import  multiplot_images
+from utils.visualization import  multiplot_images
 
 FROZEN_MODEL_TAR = "serialized/deeplabv3_mnv2_dm05_pascal_trainaug_2018_10_01.tar.gz"
 

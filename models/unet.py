@@ -1,5 +1,5 @@
 from models.segmentation_model import SegmentationModel
-from keras import models, layers
+from tensorflow.keras import models, layers
 
 
 GAUSSIAN_NOISE = 0.1
