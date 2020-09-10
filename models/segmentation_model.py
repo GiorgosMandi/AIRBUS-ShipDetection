@@ -14,6 +14,7 @@ class SegmentationModel:
         self.callbacks_list = []
 
     def set_callbacks(self):
+        print(self.weights_path)
         checkpoint = ModelCheckpoint(self.weights_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min',
                                      save_weights_only=True)
         reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.33, patience=3, verbose=1, mode='min',
@@ -28,11 +29,11 @@ class SegmentationModel:
 
     # intersection over union
     def IoU(self, y_true, y_pred, eps=1e-6):
-        if tf.math.count_nonzero(y_true) == 0:
-            return self.IoU(1-y_true, 1-y_pred)
+        #if tf.math.count_nonzero(y_true) == 0:
+        #    return self.IoU(1-y_true, 1-y_pred)
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
         union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3]) - intersection
-        return -K.mean( (intersection + eps) / (union + eps), axis=0)
+        return -K.mean( (intersection + eps) / (union + eps + 1), axis=0)
 
     def compile(self):
         self.seg_model.compile(optimizer=Adam(1e-4, decay=1e-6), loss=self.IoU, metrics=[self.dice_coef, 'binary_accuracy'])

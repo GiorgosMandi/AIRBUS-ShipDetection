@@ -8,8 +8,7 @@ from utils.utilities import *
 
 class DataLoader:
 
-    def __init__(self):
-        data_folder = "../data/"
+    def __init__(self, data_folder = "../data/"):
         self.test_images_path = data_folder + "images/test/"
         self.train_images_path = data_folder + "images/train/"
 
