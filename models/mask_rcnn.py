@@ -42,7 +42,7 @@ class MRCNN_Config(Config):
     TRAIN_ROIS_PER_IMAGE = 64
     MAX_GT_INSTANCES = 14
     DETECTION_MAX_INSTANCES = 10
-    DETECTION_MIN_CONFIDENCE = 0.8
+    DETECTION_MIN_CONFIDENCE = 0.95
     DETECTION_NMS_THRESHOLD = 0.0
 
     STEPS_PER_EPOCH = 150
@@ -123,6 +123,7 @@ class MRCNN:
             if not checkpoints:
                 print('No weight files in {}'.format(dir_name))
             else:
+                print("Weights will be stored in " + dir_name + " with epoch: " + str(best_epoch))
                 checkpoint = os.path.join(dir_name, checkpoints[best_epoch])
                 fps.append(checkpoint)
 
@@ -138,7 +139,7 @@ class MRCNN:
 
         inf_model = modellib.MaskRCNN(mode='inference', config=infer_config, model_dir=MODELS_DIR)
         print("Loading weights from ", self.weights_path)
-        inf_model.load_weights(self.weights_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc","mrcnn_bbox", "mrcnn_mask"])
+        inf_model.load_weights(self.weights_path, by_name=True)
 
         fig = plt.figure(figsize=(10, n*5))
         for i in range(n):
