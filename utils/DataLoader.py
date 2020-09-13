@@ -53,16 +53,18 @@ class DataLoader:
             np.random.shuffle(all_batches)
             for c_img_id, c_masks in all_batches:
                 c_img = self.get_image(c_img_id)
-                if f is not None:
-                    c_img = apply_filter(c_img, f)
                 c_mask = masks_as_image(c_masks['EncodedPixels'].values[0])
                 if img_scaling is not None:
                     c_img = c_img[::img_scaling[0], ::img_scaling[1]]
                     c_mask = c_mask[::img_scaling[0], ::img_scaling[1]]
+                if f is not None:
+                    c_img = apply_filter(c_img, f)
+                else:
+                    c_img = c_img/255.0
                 out_rgb += [c_img]
                 out_mask += [c_mask]
                 if len(out_rgb) >= batch_size:
-                    yield np.stack(out_rgb, 0) / 255.0, np.stack(out_mask, 0)
+                    yield np.stack(out_rgb, 0), np.stack(out_mask, 0)
                     out_rgb, out_mask = [], []
 
     def undersample_no_ships(self, frac=0.2):

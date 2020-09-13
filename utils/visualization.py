@@ -54,5 +54,4 @@ def plot_as_montage(images, masks):
     ax2.set_title('Segmentations')
     ax3.imshow(mark_boundaries(batch_rgb, batch_seg.astype(int)))
     ax3.set_title('Outlined Ships')
-    fig.savefig('overview.png')
 

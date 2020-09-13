@@ -11,6 +11,7 @@ DATA_FOLDER = "../data/"
 TEST_DATA = DATA_FOLDER + "images/test/"
 TRAIN_DATA = DATA_FOLDER + "images/train/"
 
+
 def apply_filter(img, name="equalizer"):
     if name == "equalizer":
         return exposure.equalize_hist(img)
