@@ -12,6 +12,8 @@ class SegmentationModel:
         self.seg_model = None
         self.weights_path = None
         self.callbacks_list = []
+        self.name = "unnamed"
+        self.model_folder = "../models/"
 
     def set_callbacks(self):
         print(self.weights_path)
@@ -39,7 +41,7 @@ class SegmentationModel:
         self.seg_model.compile(optimizer=Adam(1e-4, decay=1e-6), loss=self.IoU, metrics=[self.dice_coef, 'binary_accuracy'])
 
     def load(self):
-        self.seg_model = self.seg_model.load_weights(self.weights_path)
+        self.seg_model.load_weights(self.weights_path)
 
     def infer(self, x):
         return self.seg_model.predict(x)
@@ -68,3 +70,18 @@ class SegmentationModel:
                      epochs, np.concatenate([mh.history['val_binary_accuracy'] for mh in loss_history]), 'r-')
         ax2.legend(['Training', 'Validation'])
         ax2.set_title('Binary Accuracy (%)')
+        fig.savefig(self.model_folder + 'results/' + self.name + "_loss.jpg")
+
+    def visualize_validation(self, valid_x, valid_y, load=False):
+        if load:
+            self.load()
+        fig, m_axs = plt.subplots(50, 3, figsize=(20, 200))
+        for i, (ax1, ax2, ax3) in enumerate(m_axs):
+            test_img = np.expand_dims(valid_x[i], 0)
+            y = self.infer(test_img)
+            ax1.imshow(valid_x[i])
+            ax2.imshow(valid_y[i])
+            ax3.imshow(y[0, :, :, 0], vmin=0, vmax=1)
+        plt.show()
+
+        fig.savefig(self.model_folder + 'results/' + self.name + "_res.jpg")

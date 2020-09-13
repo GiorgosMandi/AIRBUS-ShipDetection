@@ -7,7 +7,7 @@ GAUSSIAN_NOISE = 0.1
 
 class UNet(SegmentationModel):
 
-    def __init__(self, input_len, models_folder = "models/serialized/"):
+    def __init__(self, input_len, model_folder="models/serialized/"):
         super().__init__()
         input_img = layers.Input(input_len, name='RGB_Input')
         pp_in_layer = input_img
@@ -60,6 +60,8 @@ class UNet(SegmentationModel):
 
         self.seg_model = models.Model(inputs=[input_img], outputs=[d])
         self.seg_model.summary()
-        self.weights_path = (models_folder + "unet_weights.best.hdf5").format('seg_model')
+        self.model_folder = model_folder
+        self.weights_path = (model_folder + "unet_weights.best.hdf5").format('seg_model')
         self.set_callbacks()
+        self.name = "U-Net"
 

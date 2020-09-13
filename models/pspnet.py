@@ -9,7 +9,7 @@ MAX_TRAIN_STEPS = 200
 
 
 class PSPNet(SegmentationModel):
-    def __init__(self, input_shape, models_folder = "models/serialized/"):
+    def __init__(self, input_shape, model_folder="models/serialized/"):
         super().__init__()
 
         def conv_block(X, filters, block):
@@ -88,6 +88,7 @@ class PSPNet(SegmentationModel):
         output_layer = last_conv_module(input_layer)
         self.seg_model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
         self.seg_model.summary()
-        self.weights_path = (models_folder + "pspnet_weights.best.hdf5").format('seg_model')
-
+        self.model_folder = model_folder
+        self.weights_path = (model_folder + "pspnet_weights.best.hdf5").format('seg_model')
         self.set_callbacks()
+        self.name = "PSPNet"
