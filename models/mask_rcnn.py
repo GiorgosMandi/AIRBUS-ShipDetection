@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from imgaug import augmenters as iaa
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
 ROOT_DIR = os.path.join(os.getcwd(), '..') 
 MODELS_DIR = os.path.join(ROOT_DIR, 'models')
@@ -23,14 +24,14 @@ import mrcnn.model as modellib
 from mrcnn import visualize
 from mrcnn.model import log
 
-#import warnings 
-#warnings.filterwarnings("ignore")
+import warnings 
+warnings.filterwarnings("ignore")
 
 class MRCNN_Config(Config):    
     NAME = 'Mask-RCNN'
     
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 3
+    IMAGES_PER_GPU = 1
     BACKBONE = 'resnet50'
     
     NUM_CLASSES = 2  # background and ship classes
@@ -41,11 +42,11 @@ class MRCNN_Config(Config):
     TRAIN_ROIS_PER_IMAGE = 64
     MAX_GT_INSTANCES = 14
     DETECTION_MAX_INSTANCES = 10
-    DETECTION_MIN_CONFIDENCE = 0.75 # <-- todo change
+    DETECTION_MIN_CONFIDENCE = 0.8
     DETECTION_NMS_THRESHOLD = 0.0
 
-    STEPS_PER_EPOCH = 200 
-    VALIDATION_STEPS = 50
+    STEPS_PER_EPOCH = 150
+    VALIDATION_STEPS = 125
     
     ## balance out losses
     LOSS_WEIGHTS = {
@@ -59,27 +60,41 @@ class MRCNN_Config(Config):
 
 class MRCNN:
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, model_folder="models/serialized/"):
         self.weights_path = path
         self.config = MRCNN_Config()
         self.mask_rcnn = modellib.MaskRCNN(mode='training', config=self.config, model_dir=SERIALIZED_MASKRCNN_DIR)
         self.mask_rcnn.load_weights(COCO_WEIGHTS_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc","mrcnn_bbox", "mrcnn_mask"])
+        self.name = "Mask-RCNN"
+        self.model_folder = model_folder
 
 # todo - fix error storing weights
 # increase lr
-    def train(self, train, valid, epochs=5, lr=0.0001, layers='all'):
+    def train(self, train, valid, epochs=5, lr=0.0015, layers='all'):
 
-        augmentation = iaa.Sometimes(5/6, iaa.OneOf(
-                                            [
+        augmentation = iaa.Sequential([
+                                        iaa.OneOf([
                                             iaa.Fliplr(1), 
                                             iaa.Flipud(1), 
                                             iaa.Affine(rotate=(-45, 45)), 
                                             iaa.Multiply((0.7, 1.2), per_channel=0.5),
                                             iaa.Affine(scale=(0.5, 1.5))
-                                             ]
-                                        )
-                                   )
-        self.mask_rcnn.train(train, valid, learning_rate=lr,epochs=epochs, layers=layers, augmentation=augmentation)
+                                             ]),
+                                        iaa.OneOf([  ## blur or sharpen
+                                            iaa.GaussianBlur(sigma=(0.0, 0.1)),
+                                            iaa.Sharpen(alpha=(0.0, 0.1)),
+                                        ]),
+                                        iaa.OneOf([  ## brightness or contrast
+                                            iaa.Multiply((0.9, 1.1)),
+                                            iaa.ContrastNormalization((0.9, 1.1)),
+                                        ])
+                                   ])
+        reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.33, patience=3, verbose=1, mode='min',
+                                           epsilon=0.0001, cooldown=0, min_lr=1e-8)
+        early = EarlyStopping(monitor="val_loss", mode="min", patience=50)
+        callbacks_list = [reduceLROnPlat, early]
+
+        self.mask_rcnn.train(train, valid, learning_rate=lr, epochs=epochs, layers=layers, augmentation=augmentation, custom_callbacks=callbacks_list)
         history =  self.mask_rcnn.keras_model.history.history
         best_epoch = np.argmin(history["val_loss"])
         score = history["val_loss"][best_epoch]
@@ -115,7 +130,7 @@ class MRCNN:
         print('Found model {}'.format(self.weights_path))
         return history
 
-    def examine_infer(self, dd, n=10):
+    def examine_inference(self, dd, n=10):
         infer_config = self.config
         infer_config.IMAGES_PER_GPU = 1
         infer_config.BATCH_SIZE = 1
@@ -137,6 +152,7 @@ class MRCNN:
             r = results[0]
             visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'], dd.class_names, r['scores'], 
                                         colors=get_colors_for_class_ids(r['class_ids']), ax=fig.axes[-1])
+        fig.savefig(self.model_folder + 'results/' + self.name + "_res.jpg")
 
     def show_loss(self, loss_history):
         loss_keys = list(loss_history.keys())
@@ -156,6 +172,7 @@ class MRCNN:
                 ax.legend(['Training', 'Validation'])
                 ax.set_title(loss)
         plt.show()
+        fig.savefig(self.model_folder + 'results/' + self.name + "_loss.jpg")
 
 
 
