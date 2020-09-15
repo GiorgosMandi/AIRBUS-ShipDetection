@@ -158,23 +158,18 @@ class MRCNN:
     def show_loss(self, loss_history):
         loss_keys = list(loss_history.keys())
         n = len(loss_history.keys())
-        fig, axn = plt.subplots(1, n//2, figsize=(10*n//2, 10))
-        if n == 2:
-            loss = loss_history[loss_keys[0]]
-            val_loss = loss_history[loss_keys[1]]
-            _ = axn.plot(loss, 'b-', val_loss, 'r-')
-            axn.legend(['Training', 'Validation'])
-            axn.set_title(loss)
-        else:
-            for i,ax in enumerate(axn):
-                loss = loss_history[loss_keys[i*2]]
-                val_loss = loss_history[loss_keys[i*2 + 1]]
-                _ = ax.plot(loss, 'b-', val_loss, 'r-')
-                ax.legend(['Training', 'Validation'])
-                ax.set_title(loss)
-        plt.show()
+        fig, axn = plt.subplots(1, n, figsize=(10*n, 10))
+        epochs = list(range(len(loss_history['loss'])))
+        for i in range(len(loss_keys)):
+            if 'val_' + loss_keys[i] in loss_keys:
+                _ = axn[i].plot(epochs, loss_history[loss_keys[i]], 'b-', loss_history['val_' + loss_keys[i]], 'r-')
+                axn[i].legend(['Training', 'Validation'])
+                axn[i].set_title(loss_keys[i])
+            else:
+                _ = axn[i].plot(epochs, loss_history[loss_keys[i]])
+                axn[i].set_title(loss_keys[i])
         fig.savefig(self.model_folder + 'results/' + self.name + "_loss.jpg")
-
+        plt.show()
 
 
 class DetectorDataset(utils.Dataset):
