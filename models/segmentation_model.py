@@ -18,11 +18,11 @@ class SegmentationModel:
 
     def set_callbacks(self):
         print(self.weights_path)
-        checkpoint = ModelCheckpoint(self.weights_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min',
+        checkpoint = ModelCheckpoint(self.weights_path, monitor='dice_coef', verbose=1, save_best_only=True, mode='max',
                                      save_weights_only=True)
-        reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.33, patience=3, verbose=1, mode='min',
+        reduceLROnPlat = ReduceLROnPlateau(monitor='dice_coef', factor=0.33, patience=3, verbose=1, mode='max',
                                            epsilon=0.0001, cooldown=0, min_lr=1e-8)
-        early = EarlyStopping(monitor="val_loss", mode="min", patience=50)
+        early = EarlyStopping(monitor="dice_coef", mode="max", patience=50)
         self.callbacks_list = [checkpoint, reduceLROnPlat, early]
 
     def dice_coef(self, y_true, y_pred, smooth=1):
@@ -35,6 +35,15 @@ class SegmentationModel:
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
         union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3]) - intersection
         return K.mean( (intersection + eps) / (union + eps + 1), axis=0)
+
+    def np_IoU(self, y_true, y_pred):
+        overlap = y_true * y_pred
+        union = y_true + y_pred
+        iou = overlap.sum() / float(union.sum())
+        return iou
+
+    def np_dice(self, y_true, y_pred):
+        return np.sum(y_pred[y_true == 1]) * 2.0 / (np.sum(y_pred) + np.sum(y_true))
 
     def dice_p_bce(self, in_gt, in_pred):
         return 1e-3 * binary_crossentropy(in_gt, in_pred) - self.dice_coef(in_gt, in_pred)
@@ -78,16 +87,22 @@ class SegmentationModel:
                 axn[i].set_title(keys[i])
         fig.savefig(self.model_folder + 'results/' + self.name + "_loss.jpg")
 
-    def visualize_validation(self, valid_x, valid_y, load=False):
-        if load:
-            self.load()
-        fig, m_axs = plt.subplots(50, 3, figsize=(20, 200))
+    def examine_performance(self, valid_x, valid_y, n=40, load=False):
+        if load: self.load()
+        iou = 0
+        dice = 0
+        fig, m_axs = plt.subplots(n, 3, figsize=(20, n*10))
         for i, (ax1, ax2, ax3) in enumerate(m_axs):
             test_img = np.expand_dims(valid_x[i], 0)
             y = self.infer(test_img)
             ax1.imshow(valid_x[i])
             ax2.imshow(valid_y[i])
             ax3.imshow(y[0, :, :, 0], vmin=0, vmax=1)
+            iou += self.np_IoU(valid_y[i], y[0])
+            dice += self.np_dice(valid_y[i], y[0])
         plt.show()
-
         fig.savefig(self.model_folder + 'results/' + self.name + "_res.jpg")
+
+        print("Average DICE Coefficient: " + str(dice/n))
+        print("Average IoU: " + str(iou/n))
+
