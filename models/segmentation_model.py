@@ -49,7 +49,7 @@ class SegmentationModel:
         return 1e-3 * binary_crossentropy(in_gt, in_pred) - self.dice_coef(in_gt, in_pred)
 
     def compile(self):
-        self.seg_model.compile(optimizer=Adam(1e-4, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
+        self.seg_model.compile(optimizer=Adam(1e-4, momentum=0.9, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
 
     def load(self):
         self.seg_model.load_weights(self.weights_path)
