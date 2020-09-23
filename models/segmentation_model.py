@@ -1,5 +1,5 @@
 from keras.backend import binary_crossentropy
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, LearningRateScheduler
 import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
@@ -20,10 +20,16 @@ class SegmentationModel:
         print(self.weights_path)
         checkpoint = ModelCheckpoint(self.weights_path, monitor='dice_coef', verbose=1, save_best_only=True, mode='max',
                                      save_weights_only=True)
-        reduceLROnPlat = ReduceLROnPlateau(monitor='dice_coef', factor=0.33, patience=3, verbose=1, mode='max',
-                                           epsilon=0.0001, cooldown=0, min_lr=1e-8)
+        reduceLROnPlat = ReduceLROnPlateau(monitor='dice_coef', factor=0.33, patience=3, verbose=1, mode='max', epsilon=0.0001, cooldown=0, min_lr=1e-8)
         early = EarlyStopping(monitor="dice_coef", mode="max", patience=50)
-        self.callbacks_list = [checkpoint, reduceLROnPlat, early]
+
+        def scheduler(epoch, lr):
+            if epoch % 3 != 0:
+                return lr
+            else:
+                return lr * 0.5
+        lr_schedule = LearningRateScheduler(schedule=scheduler)
+        self.callbacks_list = [checkpoint, reduceLROnPlat, early, lr_schedule]
 
     def dice_coef(self, y_true, y_pred, smooth=1):
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
@@ -49,7 +55,7 @@ class SegmentationModel:
         return 1e-3 * binary_crossentropy(in_gt, in_pred) - self.dice_coef(in_gt, in_pred)
 
     def compile(self):
-        self.seg_model.compile(optimizer=Adam(1e-4, momentum=0.9, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
+        self.seg_model.compile(optimizer=Adam(1e-2, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
 
     def load(self):
         self.seg_model.load_weights(self.weights_path)

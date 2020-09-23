@@ -2,11 +2,9 @@ import os
 import sys
 sys.path.insert(0, os.getcwd())
 from utils.utilities import get_image, rle_decode, get_colors_for_class_ids
-import numpy as np
 import matplotlib.pyplot as plt
-import random
 from imgaug import augmenters as iaa
-from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, LearningRateScheduler
 
 ROOT_DIR = os.path.join(os.getcwd(), '..') 
 MODELS_DIR = os.path.join(ROOT_DIR, 'models')
@@ -23,11 +21,26 @@ from mrcnn import utils
 import mrcnn.model as modellib
 from mrcnn import visualize
 from mrcnn.model import log
+import numpy as np
+
 
 import warnings 
 warnings.filterwarnings("ignore")
 
-class MRCNN_Config(Config):    
+
+def np_IoU(y_true, y_pred):
+    overlap = y_true * y_pred
+    union = y_true + y_pred
+    iou = overlap.sum() / float(union.sum())
+    return iou
+
+
+def np_dice(y_true, y_pred):
+    return np.sum(y_pred[y_true == 1]) * 2.0 / (np.sum(y_pred) + np.sum(y_true))
+
+
+
+class MRCNN_Config(Config):
     NAME = 'Mask-RCNN'
     
     GPU_COUNT = 1
@@ -56,6 +69,7 @@ class MRCNN_Config(Config):
         "mrcnn_bbox_loss": 1.0,
         "mrcnn_mask_loss": 1.2
     }
+
 
 
 class MRCNN:
@@ -92,7 +106,13 @@ class MRCNN:
         reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.33, patience=3, verbose=1, mode='min',
                                            epsilon=0.0001, cooldown=0, min_lr=1e-8)
         early = EarlyStopping(monitor="val_loss", mode="min", patience=50)
-        callbacks_list = [reduceLROnPlat, early]
+        def scheduler(epoch, lr):
+            if epoch % 3 != 0:
+                return lr
+            else:
+                return lr * 0.5
+        lr_schedule = LearningRateScheduler(schedule=scheduler)
+        callbacks_list = [reduceLROnPlat, early, lr_schedule]
 
         self.mask_rcnn.train(train, valid, learning_rate=lr, epochs=epochs, layers=layers, augmentation=augmentation, custom_callbacks=callbacks_list)
         history =  self.mask_rcnn.keras_model.history.history
@@ -131,7 +151,7 @@ class MRCNN:
         print('Found model {}'.format(self.weights_path))
         return history
 
-    def examine_inference(self, dd, n=10):
+    def examine_performance(self, dd, n=10):
         infer_config = self.config
         infer_config.IMAGES_PER_GPU = 1
         infer_config.BATCH_SIZE = 1
@@ -140,20 +160,32 @@ class MRCNN:
         inf_model = modellib.MaskRCNN(mode='inference', config=infer_config, model_dir=MODELS_DIR)
         print("Loading weights from ", self.weights_path)
         inf_model.load_weights(self.weights_path, by_name=True)
-
+        iou = 0
+        dice = 0
+        n = len(dd.image_ids)
         fig = plt.figure(figsize=(10, n*5))
-        for i in range(n):
-            image_id = random.choice(dd.image_ids)
+        for i,image_id in enumerate(dd.image_ids):
             original_image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(dd, infer_config, image_id, use_mini_mask=False)
             plt.subplot(n, 2, 2*i + 1)
             visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, dd.class_names, colors=get_colors_for_class_ids(gt_class_id), ax=fig.axes[-1])
             
             plt.subplot(n, 2, 2*i + 2)
-            results = inf_model.detect([original_image]) #, verbose=1)
+            results = inf_model.detect([original_image])
             r = results[0]
-            visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'], dd.class_names, r['scores'], 
-                                        colors=get_colors_for_class_ids(r['class_ids']), ax=fig.axes[-1])
+            visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'], dd.class_names, r['scores'], colors=get_colors_for_class_ids(r['class_ids']), ax=fig.axes[-1])
+            if r['masks'].shape[2] > 0:
+                m = r['masks'][:, :, 0]
+                for i in range(r['masks'].shape[2]-1):
+                    m += r['masks'][:, :, i+1]
+                gt_m = gt_mask[:, :, 0]
+                for i in range(gt_mask.shape[2]-1):
+                    gt_m += gt_mask[:, :, i+1]
+                iou += np_IoU(gt_m, m)
+                dice += np_dice(gt_m, m)
+
         fig.savefig(self.model_folder + 'results/' + self.name + "_res.jpg")
+        print("Average DICE Coefficient: " + str(dice / n))
+        print("Average IoU: " + str(iou / n))
 
     def show_loss(self, loss_history):
         loss_keys = list(loss_history.keys())
