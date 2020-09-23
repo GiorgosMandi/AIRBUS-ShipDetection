@@ -6,13 +6,14 @@ from PIL import Image
 
 import tensorflow as tf
 
+import tensorflow.t
 import sys
 sys.path.insert(0, os.getcwd())
 from utils.visualization import  multiplot_images
 
-FROZEN_MODEL_TAR = "serialized/deeplabv3_mnv2_dm05_pascal_trainaug_2018_10_01.tar.gz"
+FROZEN_MODEL_TAR = "models/serialized/deeplabv3_mnv2_dm05_pascal_trainaug_2018_10_01.tar.gz"
 
-
+print(os.getcwd())
 
 class DeepLabModel(object):
   """Class to load deeplab model and run inference."""
@@ -69,7 +70,7 @@ class DeepLabModel(object):
 dlm = DeepLabModel()
 #img = get_image("2b5db6f9f.jpg")
 #pilImg = Image.fromarray(img)
-jpg_path = "/home/gmandi/Pictures/obama.jpeg"
+jpg_path = "/home/gmandi/Documents/DSIT/Deep-Learning/AIRBUS-Ship_Detection/data/images/train/0a2c6480e.jpg"
 img = Image.open(jpg_path, mode='r')
 im, seg = dlm.run(img)
 multiplot_images(1, 2, im, seg)

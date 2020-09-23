@@ -17,7 +17,7 @@ class PSPNet(SegmentationModel):
     def __init__(self, input_shape, model_folder="models/serialized/"):
         super().__init__()
 
-        def conv_block(X, filters, block):
+        def res_block(X, filters, block):
             # resiudal block with dilated convolutions
             # add skip connection at last after doing convoluion operation to input X
 
@@ -51,15 +51,15 @@ class PSPNet(SegmentationModel):
 
             # block_1
             #base = conv_block(input_layer, [32, 32, 64], '1')
-            base = conv_block(input_layer, [8, 8, 8], '1')
+            base = res_block(input_layer, [8, 8, 8], '1')
 
             # block_2
             #base = conv_block(base, [64, 64, 128], '2')
-            base = conv_block(base, [16, 16, 16], '2')
+            base = res_block(base, [16, 16, 16], '2')
 
             # block_3
             #base = conv_block(base, [128, 128, 256], '3')
-            base = conv_block(base, [32, 32, 32], '3')
+            base = res_block(base, [32, 32, 32], '3')
 
             return base
 
@@ -106,5 +106,5 @@ class PSPNet(SegmentationModel):
 
 
 
-    def compile(self):
-        self.seg_model.compile(optimizer=SGD(1e-4, decay=1e-6, momentum=0.9, nesterov=True), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
+    # def compile(self):
+    #     self.seg_model.compile(optimizer=SGD(1e-4, decay=1e-6, momentum=0.9, nesterov=True), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
