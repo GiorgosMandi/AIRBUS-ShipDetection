@@ -36,7 +36,7 @@ class FCN8(SegmentationModel):
 
         conv_model.add(Convolution2D(2048, kernel_size=(7, 7), padding="same", activation="relu", name="fc_6"))
 
-        # Replacing fully connnected layers of VGG Net using convolutions
+        # Replacing fully connected layers of VGG Net using convolutions
         conv_model.add(Convolution2D(2048, kernel_size=(1, 1), padding="same", activation="relu", name="fc7"))
 
         # Gives the classifications scores for each of the 21 classes including background
@@ -46,12 +46,6 @@ class FCN8(SegmentationModel):
         print("Convolution size: " + str(Conv_size))
         #
         conv_model.add(Conv2DTranspose(1, strides=(2, 2), kernel_size=(4, 4), padding="valid", activation=None, name="score2"))
-
-        # O = ((I-K+2*P)/Stride)+1
-        # O = Output dimesnion after convolution
-        # I = Input dimnesion
-        # K = kernel Size
-        # P = Padding
 
         # I = (O-1)*Stride + K
         Deconv_size = conv_model.layers[-1].output_shape[2]  # 34 if image size is 512*512
@@ -72,11 +66,11 @@ class FCN8(SegmentationModel):
         Summed = add(inputs=[skip_con1(conv_model.layers[14].output), conv_model.layers[-1].output])
 
         # Upsampling output of first skip connection
-        x = Conv2DTranspose(1, kernel_size=(4, 4), strides=(2, 2), padding="valid", activation=None, name="score4")(Summed)
+        x = Conv2DTranspose(21, kernel_size=(4, 4), strides=(2, 2), padding="valid", activation=None, name="score4")(Summed)
         x = Cropping2D(cropping=((0, 2), (0, 2)))(x)
 
         # Conv to be applied to pool3
-        skip_con2 = Convolution2D(1, kernel_size=(1, 1), padding="same", activation=None, name="score_pool3")
+        skip_con2 = Convolution2D(21, kernel_size=(1, 1), padding="same", activation=None, name="score_pool3")
 
         # Adding skip connection which takes output og Max pooling layer 3 to current layer
         Summed = add(inputs=[skip_con2(conv_model.layers[10].output), x])
@@ -93,5 +87,5 @@ class FCN8(SegmentationModel):
         self.set_callbacks()
         self.name = "FCN8"
 
-    def compile(self):
-        self.seg_model.compile(optimizer=Adam(1e-4, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU])
+    # def compile(self):
+    #     self.seg_model.compile(optimizer=Adam(1e-4, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU])

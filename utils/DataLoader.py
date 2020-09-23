@@ -80,28 +80,6 @@ class DataLoader:
                     yield np.stack(out_rgb, 0), np.stack(out_mask, 0)
                     out_rgb, out_mask = [], []
 
-    # def get_test_gen(self, batch_size=85, img_scaling=(3, 3), f=None):
-    #     out_rgb = []
-    #     out_mask = []
-    #     all_batches = dict(list(self.test.groupby('ImageId')))
-    #     test_images = os.listdir(self.test_images_path)
-    #     for img in test_images:
-    #         test_img = imread(self.test_images_path + img)
-    #         if all_batches[img]['has_ship'].values != 0:
-    #             test_mask = masks_as_image(all_batches[img]['EncodedPixels'].values[0][0])
-    #             if img_scaling is not None:
-    #                 test_img = test_img[::img_scaling[0], ::img_scaling[1]]
-    #                 test_mask = test_mask[::img_scaling[0], ::img_scaling[1]]
-    #             if f is not None:
-    #                 test_img = apply_filter(test_img, f)
-    #             else:
-    #                 test_img = (test_img / 255.0)
-    #             out_rgb += [test_img]
-    #             out_mask += [test_mask]
-    #             if len(out_rgb) >= batch_size:
-    #                 yield np.stack(out_rgb, 0), np.stack(out_mask, 0)
-    #                 out_rgb, out_mask = [], []
-
     def undersample_no_ships(self, frac=0.2):
         ships = self.train[self.train['has_ship'] == 1]
         no_ships = self.train[self.train['has_ship'] == 0]
