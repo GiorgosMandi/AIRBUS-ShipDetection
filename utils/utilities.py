@@ -13,6 +13,12 @@ TRAIN_DATA = DATA_FOLDER + "images/train/"
 
 
 def apply_filter(img, name="equalizer"):
+    """
+        applying filter to the input image
+    :param img:  input image
+    :param name: requested filter
+    :return:  image after applying the filter
+    """
     if name == "equalizer":
         return exposure.equalize_hist(img)
     elif name == "adaptive_equalization":
@@ -43,10 +49,10 @@ def rle_decode(mask_rle, shape=(768, 768)):
 
 
 def rle_encode(img):
-    '''
+    """
     img: numpy array, 1 - mask, 0 - background
     Returns run length as string formated
-    '''
+    """
     pixels = img.T.flatten()
     pixels = np.concatenate([[0], pixels, [0]])
     runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
@@ -55,7 +61,11 @@ def rle_encode(img):
 
 
 def masks_as_image(in_mask_list):
-    # Take the individual ship masks and create a single mask array for all ships
+    """
+    Combine masks into one image
+    :param in_mask_list:  a list of masks in the form of RLE
+    :return: an array containing the masks (can be represented as an image)
+    """
     all_masks = np.zeros((768, 768), dtype=np.int16)
     for mask in in_mask_list:
         if isinstance(mask, str):
@@ -64,6 +74,12 @@ def masks_as_image(in_mask_list):
 
 
 def get_augmented_images_generator(in_gen, seed=None):
+    """
+    Augmented data generator
+    :param in_gen: image loader generator
+    :param seed: a random seed
+    :return: an image generator
+    """
     dg_args = dict(featurewise_center=False,
                    samplewise_center=False,
                    rotation_range=15,
@@ -93,16 +109,26 @@ def get_augmented_images_generator(in_gen, seed=None):
 
         yield next(g_x) / 255.0, next(g_y)
 
-# set color for class
+
 def get_colors_for_class_ids(class_ids):
+    """
+    assign a class with a color
+    """
     colors = []
     for class_id in class_ids:
         if class_id == 1:
             colors.append((.941, .204, .204))
     return colors
-    
+
+
 def get_image(img_id, from_train=True):
+    """
+    load the requested image
+    :param img_id:  the id of the image, which is also its filename
+    :param from_train: from training set else from testing
+    :return: the image
+    """
     if from_train:
         return imread(TRAIN_DATA + img_id)
     else:
-        return
+        return imread(TEST_DATA + img_id)

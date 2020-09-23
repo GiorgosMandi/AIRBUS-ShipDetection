@@ -6,6 +6,12 @@ from skimage.segmentation import mark_boundaries
 
 
 def plot_masks(img, all_masks):
+    """
+    plot image with its masks
+    :param img:  input image
+    :param all_masks: its masks as an image (after being decoded)
+    :return: plots the results
+    """
     fig, axarr = plt.subplots(1, 3, figsize=(15, 40))
     axarr[0].axis('off')
     axarr[1].axis('off')
@@ -19,6 +25,13 @@ def plot_masks(img, all_masks):
 
 
 def multiplot_images(rows, columns, *images):
+    """
+    plots multiple images
+    :param rows:  #rows
+    :param columns: #column
+    :param images: #images ( = rows*columns)
+    :return:
+    """
     total = rows*columns
     if len(images) != total:
         print("ERROR: Wrong number of rows and columns")
@@ -31,6 +44,10 @@ def multiplot_images(rows, columns, *images):
 
 
 def plot_ships_frequencies(df):
+    """
+    plots ships frequencies in images
+    :param df: input df
+    """
     count = df['ships'].tolist()
     count = Counter(count)
 
@@ -45,6 +62,11 @@ montage_rgb = lambda x: np.stack([montage(x[:, :, :, i]) for i in range(x.shape[
 
 
 def plot_as_montage(images, masks):
+    """
+    plots multiple images as montage
+    :param images: images
+    :param masks: their masks as arrays
+    """
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(30, 10))
     batch_rgb = montage_rgb(images)
     batch_seg = montage(masks[:, :, :, 0])

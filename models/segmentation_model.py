@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 class SegmentationModel:
 
     def __init__(self):
+        """
+        initializing segmentation model,
+        most of the parameters will be set by the sub-classes
+        """
         self.seg_model = None
         self.weights_path = None
         self.callbacks_list = []
@@ -17,6 +21,14 @@ class SegmentationModel:
         self.model_folder = "../models/"
 
     def set_callbacks(self):
+        """
+        registers the callbacks
+        * EarlyStopping: stops the model when it no longer learns
+        * ModelChckpoint: store the wights of the best epoch
+        * ReduceLROnPlateau: reduce LR when it find itself in a plateu
+        * LearningRateScheduler: halves the LR every 5th epoch
+        :return:
+        """
         print(self.weights_path)
         checkpoint = ModelCheckpoint(self.weights_path, monitor='dice_coef', verbose=1, save_best_only=True, mode='max',
                                      save_weights_only=True)
@@ -24,46 +36,65 @@ class SegmentationModel:
         early = EarlyStopping(monitor="dice_coef", mode="max", patience=50)
 
         def scheduler(epoch, lr):
-            if epoch % 3 != 0:
-                return lr
+            e = epoch+1
+            if e % 5 != 0:
+                new_lr = lr
             else:
-                return lr * 0.5
+                new_lr = lr * 0.5
+                print("Reducing learning rate to: " + str(new_lr))
+            return new_lr
+
         lr_schedule = LearningRateScheduler(schedule=scheduler)
         self.callbacks_list = [checkpoint, reduceLROnPlat, early, lr_schedule]
 
     def dice_coef(self, y_true, y_pred, smooth=1):
+        """
+        DICE COEF metric
+        """
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
         union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3])
         return K.mean((2. * intersection + smooth) / (union + smooth), axis=0)
 
     # intersection over union
     def IoU(self, y_true, y_pred, eps=1e-6):
+        """
+        Intersection over Union
+        """
         intersection = K.sum(y_true * y_pred, axis=[1, 2, 3])
         union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3]) - intersection
         return K.mean( (intersection + eps) / (union + eps + 1), axis=0)
 
+    def dice_p_bce(self, in_gt, in_pred):
+        """ Loss Function"""
+        return 1e-3 * binary_crossentropy(in_gt, in_pred) - self.dice_coef(in_gt, in_pred)
+
     def np_IoU(self, y_true, y_pred):
+        """ IoU for numpy ar, used during the testing phase"""
         overlap = y_true * y_pred
         union = y_true + y_pred
         iou = overlap.sum() / float(union.sum())
         return iou
 
     def np_dice(self, y_true, y_pred):
+        """ DICE for numpy ar, used during the testing phase"""
         return np.sum(y_pred[y_true == 1]) * 2.0 / (np.sum(y_pred) + np.sum(y_true))
 
-    def dice_p_bce(self, in_gt, in_pred):
-        return 1e-3 * binary_crossentropy(in_gt, in_pred) - self.dice_coef(in_gt, in_pred)
-
     def compile(self):
-        self.seg_model.compile(optimizer=Adam(1e-2, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
+        """
+        compiling models, using DICE and IoU as main metrics, and ADAM optimizer.
+        """
+        self.seg_model.compile(optimizer=Adam(1e-3, decay=1e-6), loss=self.dice_p_bce, metrics=[self.dice_coef, self.IoU, 'binary_accuracy'])
 
     def load(self):
+        """ Loads stored weights"""
         self.seg_model.load_weights(self.weights_path)
 
     def infer(self, x):
+        """predict"""
         return self.seg_model.predict(x)
 
-    def validate(self, gen, input_len, valid_set, epochs=5, train_steps=-1, batch_size=9):
+    def train(self, gen, input_len, valid_set, epochs=5, train_steps=-1, batch_size=9):
+        """ Its the training process """
         valid_x = valid_set[0]
         valid_y = valid_set[1]
         if train_steps > 0:
@@ -79,6 +110,7 @@ class SegmentationModel:
         return history
 
     def show_loss(self, loss_history):
+        """ Plots the loss and the metrics"""
         epochs = np.concatenate([mh.epoch for mh in loss_history])
         keys = [k for k in list(loss_history[0].history.keys()) if "val_" not in k]
         fig, axn = plt.subplots(1, len(keys), figsize=(len(keys)*10, 10))
@@ -93,19 +125,20 @@ class SegmentationModel:
                 axn[i].set_title(keys[i])
         fig.savefig(self.model_folder + 'results/' + self.name + "_loss.jpg")
 
-    def examine_performance(self, valid_x, valid_y, n=40, load=False):
+    def examine_performance(self, test_x, text_y, n=40, load=False):
+        """Computes the metrics over the testing set, and plots the predicted masks"""
         if load: self.load()
         iou = 0
         dice = 0
         fig, m_axs = plt.subplots(n, 3, figsize=(20, n*10))
         for i, (ax1, ax2, ax3) in enumerate(m_axs):
-            test_img = np.expand_dims(valid_x[i], 0)
+            test_img = np.expand_dims(test_x[i], 0)
             y = self.infer(test_img)
-            ax1.imshow(valid_x[i])
-            ax2.imshow(valid_y[i])
+            ax1.imshow(test_x[i])
+            ax2.imshow(text_y[i])
             ax3.imshow(y[0, :, :, 0], vmin=0, vmax=1)
-            iou += self.np_IoU(valid_y[i], y[0])
-            dice += self.np_dice(valid_y[i], y[0])
+            iou += self.np_IoU(text_y[i], y[0])
+            dice += self.np_dice(text_y[i], y[0])
         plt.show()
         fig.savefig(self.model_folder + 'results/' + self.name + "_res.jpg")
 
