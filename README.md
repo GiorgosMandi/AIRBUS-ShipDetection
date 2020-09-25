@@ -33,7 +33,7 @@ To further improve performance, I examine the use of filters that enhances the c
 | Mask-RCNN                       	| 0.45 	| 0.31 	|
   
 
-<img src="https://github.com/GiorgosMandi/AIRBUS-ShipDetection/tree/master/notebooks/results_example.png" alt="Markdown Monster icon"  style="float: left; margin-right: 10px;" />
+<img src="https://github.com/GiorgosMandi/AIRBUS-ShipDetection/blob/master/notebooks/results_example.png?raw=true" alt="Markdown Monster icon"  style="float: left; margin-right: 10px;" />
 
 ## How to improve
 
