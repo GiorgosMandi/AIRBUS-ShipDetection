@@ -58,7 +58,7 @@ class MRCNN_Config(Config):
     DETECTION_MIN_CONFIDENCE = 0.95
     DETECTION_NMS_THRESHOLD = 0.0
 
-    STEPS_PER_EPOCH = 150
+    STEPS_PER_EPOCH = 300
     VALIDATION_STEPS = 125
     
     ## balance out losses
@@ -82,8 +82,7 @@ class MRCNN:
         self.name = "Mask-RCNN"
         self.model_folder = model_folder
 
-# todo - fix error storing weights
-# increase lr
+
     def train(self, train, valid, epochs=5, lr=0.0015, layers='all'):
 
         augmentation = iaa.Sequential([
@@ -107,7 +106,7 @@ class MRCNN:
                                            epsilon=0.0001, cooldown=0, min_lr=1e-8)
         early = EarlyStopping(monitor="val_loss", mode="min", patience=50)
         def scheduler(epoch, lr):
-            if epoch % 3 != 0:
+            if epoch % 5 != 0:
                 return lr
             else:
                 return lr * 0.5
@@ -207,10 +206,10 @@ class MRCNN:
 class DetectorDataset(utils.Dataset):
     """Dataset class for training Mask-RCNN.
     """
-    def __init__(self, df, shape=(768, 768), img_scaling=(3, 3)):
+    def __init__(self, df, shape=(768, 768), img_scaling=(3, 3), train=True):
         super().__init__(self)
         self.img_scaling = img_scaling
-        
+        self.train = train
         # Add classes
         self.add_class('ship', 1, 'Ship')
         # add images 
@@ -227,7 +226,7 @@ class DetectorDataset(utils.Dataset):
     def load_image(self, image_id):
         info = self.image_info[image_id]
         path = info['path']
-        image = get_image(path)
+        image = get_image(path, from_train=self.train)
         if self.img_scaling is not None:
             image = image[::self.img_scaling[0], ::self.img_scaling[1]]
         # If grayscale. Convert to RGB for consistency.

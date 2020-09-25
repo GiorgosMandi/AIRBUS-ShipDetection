@@ -19,7 +19,7 @@ class PSPNet(SegmentationModel):
 
         def res_block(X, filters, block):
             # resiudal block with dilated convolutions
-            # add skip connection at last after doing convoluion operation to input X
+            # add skip connection at last after doing convolution operation to input X
 
             b = 'block_' + str(block) + '_'
             f1, f2, f3 = filters

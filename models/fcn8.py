@@ -36,19 +36,18 @@ class FCN8(SegmentationModel):
 
         conv_model.add(Convolution2D(2048, kernel_size=(7, 7), padding="same", activation="relu", name="fc_6"))
 
-        # Replacing fully connected layers of VGG Net using convolutions
+        # Replacing fully connected layers of VGG Net using convolutions -- reduced filters
         conv_model.add(Convolution2D(2048, kernel_size=(1, 1), padding="same", activation="relu", name="fc7"))
 
-        # Gives the classifications scores for each of the 21 classes including background
         conv_model.add(Convolution2D(1, kernel_size=(1, 1), padding="same", activation="relu", name="score_fr"))
 
-        Conv_size = conv_model.layers[-1].output_shape[2]  # 16 if image size if 512
+        Conv_size = conv_model.layers[-1].output_shape[2] 
         print("Convolution size: " + str(Conv_size))
         #
         conv_model.add(Conv2DTranspose(1, strides=(2, 2), kernel_size=(4, 4), padding="valid", activation=None, name="score2"))
 
         # I = (O-1)*Stride + K
-        Deconv_size = conv_model.layers[-1].output_shape[2]  # 34 if image size is 512*512
+        Deconv_size = conv_model.layers[-1].output_shape[2] 
         print("Deconvolution size: " + str(Deconv_size))
         # 2 if image size is 512*512
 
@@ -62,7 +61,7 @@ class FCN8(SegmentationModel):
 
         skip_con1 = Convolution2D(1, kernel_size=(1, 1), padding="same", activation=None, name="score_pool4")
 
-        # Addig skip connection which takes adds the output of Max pooling layer 4 to current layer
+        # Adding skip connection which takes adds the output of Max pooling layer 4 to current layer
         Summed = add(inputs=[skip_con1(conv_model.layers[14].output), conv_model.layers[-1].output])
 
         # Upsampling output of first skip connection
